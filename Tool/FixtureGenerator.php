@@ -370,8 +370,17 @@ use Doctrine\ORM\Mapping\ClassMetadata;
         foreach ($properties as $property) {
             $property->setAccessible(true);
 
-            $setter = "set" . ucfirst($property->getName());
-            $getter = "get" . ucfirst($property->getName());
+            $name = $property->getName();
+            //Change underscore properties (example_property) to camel case property (exampleProperty)
+            if (strpos($name, '_')) {
+                $_names = explode('_', $property->getName());
+                foreach ($_names as $k => $_name) {
+                    $_names[$k] = ucfirst($_name);
+                }
+                $name = implode('', $_names);
+            }
+            $setter = "set" . ucfirst($name);
+            $getter = "get" . ucfirst($name);
             $comment = "";
             if (method_exists($item, $setter)) {
                 $value = $property->getValue($item);
@@ -379,14 +388,16 @@ use Doctrine\ORM\Mapping\ClassMetadata;
                 if (is_integer($value)) {
                     $setValue = $value;
                 } elseif (is_bool($value)) {
-                    $setValue = $value;
+                    $setValue = ($value == true) ? 1 : 0;
                 } elseif ($value instanceof \DateTime) {
                     $setValue = "new \\DateTime(\"" . $value->format("Y-m-d H:i:s") . "\")";
                 } elseif (is_object($value)) {
                     //check reference.
                     $setValue = "";
                     $comment = "//";
-                } else {
+                } elseif (is_array($value)) {
+                    $setValue = "unserialize('".serialize($value)."')";
+                }else {
                     $setValue = '"' . $value . '"';
                 }
 
