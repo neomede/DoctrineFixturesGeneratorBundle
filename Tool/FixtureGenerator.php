@@ -385,6 +385,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
             if (method_exists($item, $setter)) {
                 $value = $property->getValue($item);
 
+                $doctrine = false;
                 if (is_integer($value)) {
                     $setValue = $value;
                 } elseif (is_bool($value)) {
@@ -393,6 +394,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
                     $setValue = "new \\DateTime(\"" . $value->format("Y-m-d H:i:s") . "\")";
                 } elseif (is_object($value)) {
                     //check reference.
+                    $doctrine = true;
                     $setValue = "";
                     $comment = "//";
                 } elseif (is_array($value)) {
@@ -401,8 +403,14 @@ use Doctrine\ORM\Mapping\ClassMetadata;
                     $setValue = '"' . $value . '"';
                 }
 
-
-                $code .= "\n<spaces><spaces>{$comment}\$item{$id}->{$setter}({$setValue});";
+                if ($doctrine) {
+                    $code .= "\n<spaces><spaces>\$entity = \$this->container->get('doctrine')->getRepository('DroidersAddressBundle:State')->findOneById({$value->getId()});"
+                        . "\n\tif(\$entity){"
+                        .     "\n\t\t\$item{$id}->{$setter}(\$entity);"
+                        . "\n\t}";
+                }else{
+                    $code .= "\n<spaces><spaces>{$comment}\$item{$id}->{$setter}({$setValue});";
+                }
             }
         }
 
